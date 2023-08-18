@@ -4,7 +4,7 @@
             "path": "."
         },
         {
-            "name": "project",
+            "name": "stm32f407ZGT6_EIDE",
             "path": ".."
         }
     ],
