@@ -1,8 +1,8 @@
 /*
  * @Author: Dragon
  * @Date: 2023-08-18 20:43:25
- * @LastEditTime: 2023-08-18 21:34:36
- * @FilePath: \projectf:\Vscode_programming\Embedded\STM32\project\1_user\usart\usart.c
+ * @LastEditTime: 2023-08-19 13:58:54
+ * @FilePath: \projectf:\Vscode_programming\Embedded\STM32\stm32f407ZGT6_EIDE\1_user\usart\usart.c
  * @Description: 正点原子usart文件
  * @Wearing:  Read only, do not modify place!!!
  * @Shortcut keys:  ctrl+alt+/ ctrl+alt+t
@@ -15,6 +15,7 @@
 #include "includes.h" //ucos 使用
 #endif
 
+// gcc下这样写有bug待修改
 //////////////////////////////////////////////////////////////////
 // 加入以下代码,支持printf函数,而不需要选择use MicroLIB
 #if 1
@@ -50,15 +51,6 @@ u8 USART_RX_BUF[USART_REC_LEN]; // 接收缓冲,最大USART_REC_LEN个字节.
 // bit14，	接收到0x0d
 // bit13~0，	接收到的有效字节数目
 u16 USART_RX_STA = 0; // 接收状态标记
-
-// 初始化IO 串口1
-// bound:波特率
-
-/**
- * @description: 初始化串口1函数
- * @param {u32} bound 波特率
- * @return {*}
- */
 
 /**
  * @brief 初始化串口1函数
