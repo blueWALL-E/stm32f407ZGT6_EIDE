@@ -1,7 +1,7 @@
 /*
  * @Author: Dragon
  * @Date: 2023-08-18 20:43:25
- * @LastEditTime: 2023-08-19 13:58:54
+ * @LastEditTime: 2023-09-26 15:39:11
  * @FilePath: \projectf:\Vscode_programming\Embedded\STM32\stm32f407ZGT6_EIDE\1_user\usart\usart.c
  * @Description: 正点原子usart文件
  * @Wearing:  Read only, do not modify place!!!
@@ -144,3 +144,4 @@ void USART1_IRQHandler(void) // 串口1中断服务程序
 #endif
 }
 #endif
+//串口函数待移植
