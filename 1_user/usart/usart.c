@@ -1,7 +1,7 @@
 /*
  * @Author: Dragon
  * @Date: 2023-08-18 20:43:25
- * @LastEditTime: 2023-09-26 15:39:11
+ * @LastEditTime: 2023-09-28 21:48:55
  * @FilePath: \projectf:\Vscode_programming\Embedded\STM32\stm32f407ZGT6_EIDE\1_user\usart\usart.c
  * @Description: 正点原子usart文件
  * @Wearing:  Read only, do not modify place!!!
@@ -144,4 +144,84 @@ void USART1_IRQHandler(void) // 串口1中断服务程序
 #endif
 }
 #endif
-//串口函数待移植
+
+/**
+ * @brief 发送一个字节 0xff
+ * @note NUULL
+ * @param pUSARTx USART pointer
+ * @param ch send data 0x00-0xff
+ * @return {*}
+ */
+void Usart_SendByte(USART_TypeDef *pUSARTx, uint8_t ch)
+{
+
+	USART_SendData(pUSARTx, ch);
+
+	while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TXE) == RESET)
+		;
+}
+
+/**
+ * @brief 发送2个字节 0x0d0a
+ * @note NUULL
+ * @param pUSARTx USART pointer
+ * @param ch send data 0x0000-0xffff 0x0a0d
+ * @return {*}
+ */
+void Usart_SendHalfWord(USART_TypeDef *pUSARTx, uint16_t ch)
+{
+	uint8_t temp_h, temp_l;
+	temp_h = (ch & 0xff00) >> 8;
+	temp_l = (ch & 0xff);
+	USART_SendData(pUSARTx, temp_h);
+	while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TXE) == RESET)
+		;
+	USART_SendData(pUSARTx, temp_l);
+	while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TXE) == RESET)
+		;
+}
+
+/**
+ * @brief 发送8位的数组
+ * @note NUULL
+ * @param pUSARTx USART pointer
+ * @param array First address of array
+ * @param num Array length
+ * @return {*}
+ */
+void Usart_SendArray(USART_TypeDef *pUSARTx, uint8_t *array, uint16_t num)
+{
+	uint16_t i;
+
+	for (i = 0; i < num; i++)
+	{
+
+		USART_SendData(pUSARTx, array[i]);
+		while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TXE) == RESET)
+			;
+	}
+
+	while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TC) == RESET)
+		;
+}
+
+/**
+ * @brief 发送字符串
+ * @note NUULL
+ * @param pUSARTx USART pointer
+ * @param str First address of string \0 end
+ * @return {*}
+ */
+void Usart_SendString(USART_TypeDef *pUSARTx, char *str)
+{
+	unsigned int k = 0;
+	do
+	{
+		Usart_SendByte(pUSARTx, *(str + k));
+		k++;
+	} while (*(str + k) != '\0');
+
+	while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TC) == RESET)
+	{
+	}
+}
