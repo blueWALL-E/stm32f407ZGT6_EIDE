@@ -1,7 +1,7 @@
 /*
  * @Author: Dragon
  * @Date: 2023-08-18 20:43:25
- * @LastEditTime: 2023-09-28 21:48:55
+ * @LastEditTime: 2023-09-29 11:08:35
  * @FilePath: \projectf:\Vscode_programming\Embedded\STM32\stm32f407ZGT6_EIDE\1_user\usart\usart.c
  * @Description: 正点原子usart文件
  * @Wearing:  Read only, do not modify place!!!
@@ -15,42 +15,9 @@
 #include "includes.h" //ucos 使用
 #endif
 
-// gcc下这样写有bug待修改
-//////////////////////////////////////////////////////////////////
-// 加入以下代码,支持printf函数,而不需要选择use MicroLIB
-#if 1
-#pragma import(__use_no_semihosting)
-// 标准库需要的支持函数
-struct __FILE
-{
-	int handle;
-};
-
-FILE __stdout;
-// 定义_sys_exit()以避免使用半主机模式
-void _sys_exit(int x)
-{
-	x = x;
-}
-// 重定义fputc函数
-int fputc(int ch, FILE *f)
-{
-	while ((USART1->SR & 0X40) == 0)
-		; // 循环发送,直到发送完毕
-	USART1->DR = (u8)ch;
-	return ch;
-}
-#endif
-
-#if EN_USART1_RX // 如果使能了接收
-// 串口1中断服务程序
-// 注意,读取USARTx->SR能避免莫名其妙的错误
-u8 USART_RX_BUF[USART_REC_LEN]; // 接收缓冲,最大USART_REC_LEN个字节.
-// 接收状态
-// bit15，	接收完成标志
-// bit14，	接收到0x0d
-// bit13~0，	接收到的有效字节数目
-u16 USART_RX_STA = 0; // 接收状态标记
+u8 USART_RX_BUF[USART_MAX_RECV_LEN]; // 接收缓冲,最大USART_MAX_RECV_LEN个字节.
+u8 USART_TX_BUF[USART_MAX_SEND_LEN]; // 发送缓冲,最大USART_MAX_SEND_LEN个字节
+vu16 USART_RX_STA;					 // 接收数据状态  volatile
 
 /**
  * @brief 初始化串口1函数
@@ -93,7 +60,6 @@ void uart_init(u32 bound)
 
 	// USART_ClearFlag(USART1, USART_FLAG_TC);
 
-#if EN_USART1_RX
 	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE); // 开启相关中断
 
 	// Usart1 NVIC 配置
@@ -102,10 +68,13 @@ void uart_init(u32 bound)
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 3;		  // 子优先级3
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			  // IRQ通道使能
 	NVIC_Init(&NVIC_InitStructure);							  // 根据指定的参数初始化VIC寄存器、
-
-#endif
 }
 
+/**
+ * @brief 串口1 中断服务函数
+ * @note:
+ * @return {*}
+ */
 void USART1_IRQHandler(void) // 串口1中断服务程序
 {
 	u8 Res;
@@ -115,35 +84,11 @@ void USART1_IRQHandler(void) // 串口1中断服务程序
 	if (USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) // 接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
 		Res = USART_ReceiveData(USART1); //(USART1->DR);	//读取接收到的数据
-
-		if ((USART_RX_STA & 0x8000) == 0) // 接收未完成
-		{
-			if (USART_RX_STA & 0x4000) // 接收到了0x0d
-			{
-				if (Res != 0x0a)
-					USART_RX_STA = 0; // 接收错误,重新开始
-				else
-					USART_RX_STA |= 0x8000; // 接收完成了
-			}
-			else // 还没收到0X0D
-			{
-				if (Res == 0x0d)
-					USART_RX_STA |= 0x4000;
-				else
-				{
-					USART_RX_BUF[USART_RX_STA & 0X3FFF] = Res;
-					USART_RX_STA++;
-					if (USART_RX_STA > (USART_REC_LEN - 1))
-						USART_RX_STA = 0; // 接收数据错误,重新开始接收
-				}
-			}
-		}
 	}
 #if SYSTEM_SUPPORT_OS // 如果SYSTEM_SUPPORT_OS为真，则需要支持OS.
 	OSIntExit();
 #endif
 }
-#endif
 
 /**
  * @brief 发送一个字节 0xff
@@ -223,5 +168,28 @@ void Usart_SendString(USART_TypeDef *pUSARTx, char *str)
 
 	while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TC) == RESET)
 	{
+	}
+}
+
+/**
+ * @brief 串口 printf 函数 类似于printf("ABC%d",a)函数
+ * @note 确保一次发送数据不超过USART2_MAX_SEND_LEN字节
+ * @param pUSARTx 串口号
+ * @param fmt 需要发送的信息
+ * @return {*}
+ */
+void Usart_printf(USART_TypeDef *pUSARTx, char *fmt, ...) //...表示可变参数（多个可变参数组成一个列表，后面有专门的指针指向他），不限定个数和类型
+{
+	u16 i, j;
+	va_list ap;								 // 初始化指向可变参数列表的指针
+	va_start(ap, fmt);						 // 将第一个可变参数的地址付给ap，即ap指向可变参数列表的开始
+	vsprintf((char *)USART_TX_BUF, fmt, ap); // 将参数fmt、ap指向的可变参数一起转换成格式化字符串，放(char*)USART_TX_BUF数组中，其作用同sprintf（），只是参数类型不同
+	va_end(ap);
+	i = strlen((const char *)USART_TX_BUF); // 此次发送数据的长度
+	for (j = 0; j < i; j++)					// 循环发送数据
+	{
+		while (USART_GetFlagStatus(pUSARTx, USART_FLAG_TC) == RESET)
+			;									  // 循环发送,直到发送完毕
+		USART_SendData(pUSARTx, USART_TX_BUF[j]); // 把格式化字符串从开发板串口送出去
 	}
 }
