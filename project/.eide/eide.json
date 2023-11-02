@@ -187,7 +187,9 @@
   },
   "targets": {
     "Debug": {
-      "excludeList": [],
+      "excludeList": [
+        "<virtual_root>/DSP"
+      ],
       "toolchain": "GCC",
       "compileConfig": {
         "cpuType": "Cortex-M4",
@@ -230,7 +232,10 @@
         "defineList": [
           "STM32F40_41xxx",
           "USE_STDPERIPH_DRIVER",
-          "STM32F407xx"
+          "STM32F407xx",
+          "ARM_MATH_CM4",
+          "ARM_MATH_MATRIX_CHECK",
+          "ARM_MATH_ROUNDING"
         ]
       }
     }

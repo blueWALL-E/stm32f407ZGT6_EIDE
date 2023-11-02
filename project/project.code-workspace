@@ -28,7 +28,8 @@
             "editor.insertSpaces": true,
             "editor.tabSize": 4,
             "editor.autoIndent": "advanced"
-        }
+        },
+        "liveServer.settings.multiRootWorkspaceName": "stm32f407ZGT6_EIDE"
     },
     "extensions": {
         "recommendations": [
